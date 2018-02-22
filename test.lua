@@ -26,6 +26,7 @@ local cases = {
         ["(>= 22 (+ 21 1))"]=true,
         ["(<= 88 32)"]=false,
         ["(~= 33 1)"]=true,
+        ["(< 1 2 0)"]=false,
     },
 
     functions = {

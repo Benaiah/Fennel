@@ -1123,7 +1123,15 @@ local function defineComparatorSpecial(name, realop)
     SPECIALS[name] = function(ast, scope, parent)
         local lhs = compile1(ast[2], scope, parent, {nval = 1})
         local rhs = compile1(ast[3], scope, parent, {nval = 1})
-        return ('((%s) %s (%s))'):format(tostring(lhs[1]), op, tostring(rhs[1]))
+        local comp = ('((%s) %s (%s))'):format(tostring(lhs[1]), op,
+                                               tostring(rhs[1]))
+        if(ast.n == 3) then
+            return comp
+        else
+            table.remove(ast, 1)
+            ast.n = ast.n - 1
+            return comp .. " and " .. SPECIALS[name](ast, scope, parent)
+        end
     end
 end
 
