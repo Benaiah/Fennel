@@ -2073,7 +2073,7 @@ SPECIALS['quote'] = function(ast, scope, parent)
 end
 docSpecial('quote', {'x'}, 'Quasiquote the following form. Only works in macro/compiler scope.')
 
-local function compileStream(strm, options)
+local function compileAST(vals, options)
     options = options or {}
     local oldGlobals = allowedGlobals
     local oldChunk = rootChunk
@@ -2083,11 +2083,6 @@ local function compileStream(strm, options)
     if options.indent == nil then options.indent = '  ' end
     local scope = options.scope or makeScope(GLOBAL_SCOPE)
     if options.requireAsInclude then scope.specials.require = requireSpecial end
-    local vals = {}
-    for ok, val in parser(strm, options.filename) do
-        if not ok then break end
-        vals[#vals + 1] = val
-    end
     local chunk = {}
     rootChunk = chunk
     rootScope = scope
@@ -2103,6 +2098,15 @@ local function compileStream(strm, options)
     rootScope = oldScope
     rootOptions = oldOptions
     return flatten(chunk, options)
+end
+
+local function compileStream(strm, options)
+    local vals = {}
+    for ok, val in parser(strm, options.filename) do
+        if not ok then break end
+        vals[#vals + 1] = val
+    end
+    return compileAST(vals, options)
 end
 
 local function compileString(str, options)
@@ -2216,6 +2220,18 @@ local function eval(str, options, ...)
     end
     local env = options.env and wrapEnv(options.env)
     local luaSource = compileString(str, options)
+    local loader = loadCode(luaSource, env,
+        options.filename and ('@' .. options.filename) or str)
+    return loader(...)
+end
+
+local function evalAST(ast, options, ...)
+    options = options or {}
+    if options.allowedGlobals == nil and not getmetatable(options.env) then
+        options.allowedGlobals = currentGlobalNames(options.env)
+    end
+    local env = options.env and wrapEnv(options.env)
+    local luaSource = compileAST(ast, options)
     local loader = loadCode(luaSource, env,
         options.filename and ('@' .. options.filename) or str)
     return loader(...)
@@ -2505,6 +2521,7 @@ local function makeCompilerEnv(ast, scope, parent)
         sym = sym,
         unpack = unpack,
         gensym = function() return sym(gensym(macroCurrentScope)) end,
+        ["eval-ast"]=function(...) return evalAST({...}) end,
         ["list?"] = isList,
         ["multi-sym?"] = isMultiSym,
         ["sym?"] = isSym,
