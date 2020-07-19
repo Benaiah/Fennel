@@ -1,6 +1,13 @@
-(local {: byte-stream->token-stream
+(require-macros "src.fennel.enum")
+(local {: token-types
+        : byte-stream->token-stream
         : string->token-stream} (require "src.fennel.tokenizer"))
 (local {: create-stack} (require "src.fennel.stack"))
+
+(global _ENV _ENV)
+(global _G _G)
+(global setfenv setfenv)
+(global loadstring loadstring)
 
 (fn load-code [code environment filename]
   (var environment environment)
@@ -119,6 +126,12 @@
 (local parser-states (enum expecting-form
                            expecting-whitespace
                            expecting-prefixed-form))
+
+(fn map-stream [f stream] (fn [...] (f (stream ...))))
+(local box-tokens
+  (partial map-stream
+           (fn [token-type first ...]
+             (values token-type (when first [first ...])))))
 
 (fn token-stream->form-stream [token-stream]
   (let [boxed-token-stream (box-tokens token-stream)

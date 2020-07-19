@@ -1,22 +1,8 @@
+(require-macros "src.fennel.enum")
 (local {: create-cursor} (require "src.fennel.cursor"))
 (local {: create-reader : compose-tagged-readers} (require "src.fennel.readers"))
 
-;; (local unpack (or unpack table.unpack))
-
-(macro enum [...]
-  (let [cases [...]
-        stringed-cases []]
-    (each [i case (ipairs cases)]
-      (let [stringed-case (tostring case)]
-        (tset stringed-cases i (tostring case))))
-    `(let [this-enum# [,(unpack stringed-cases)]]
-       (each [k# v# (ipairs this-enum#)]
-         ;; this-enum.CASE will return the int
-         (tset this-enum# v# k#)
-         ;; this-enum.case? will check equality with the int
-         (tset this-enum# (.. v# :?) #(= $ k#)))
-       this-enum#)))
-
+(local unpack (or _G.unpack table.unpack))
 (fn stateful-string-stream [str]
   (var index 1)
   #(let [r (str:byte index)]
@@ -346,4 +332,4 @@
 (fn string->token-stream [str]
   (-> str stateful-string-stream byte-stream->token-stream))
 
-{: byte-stream->token-stream : string->token-stream}
+{: token-types : byte-stream->token-stream : string->token-stream}
