@@ -1,15 +1,11 @@
 (require-macros "src.fennel.enum")
+(local {: string->byte-stream} (require "src.fennel.utils"))
 (local {: create-cursor} (require "src.fennel.cursor"))
 (local {: create-reader : compose-tagged-readers} (require "src.fennel.readers"))
 
 (local unpack (or _G.unpack table.unpack))
-(fn stateful-string-stream [str]
-  (var index 1)
-  #(let [r (str:byte index)]
-     (set index (+ index 1))
-     r))
 
-(fn create-string-cursor [s] (-> s stateful-string-stream create-cursor))
+(fn create-string-cursor [s] (-> s string->byte-stream create-cursor))
 
 (local token-types
        (enum string number symbol keyword-string
@@ -306,30 +302,11 @@
             (error (.. "unrecognized byte sequence [" b1 " " b2 " " b3 "] "
                        "\"" (string.char b1 b2 b3) "\"")))))))
 
-(fn chunk-stream->byte-stream [chunk-stream]
-  (var chunk "")
-  (var index 1)
-  (var done false)
-  (fn [...]
-    (if done nil
-
-        (<= index (length chunk))
-        (let [byte (chunk:byte index)]
-          (set index (+ index 1))
-          byte)
-
-        (do (set chunk (chunk-stream ...))
-            (if (or (not chunk) (= chunk ""))
-                (set done true)
-
-                (do (set index 2)
-                    (chunk:byte 1)))))))
-
 (fn byte-stream->token-stream [bytes-stream]
   (let [cursor (create-cursor bytes-stream)]
     #(take-token cursor)))
 
 (fn string->token-stream [str]
-  (-> str stateful-string-stream byte-stream->token-stream))
+  (-> str string->byte-stream byte-stream->token-stream))
 
 {: token-types : byte-stream->token-stream : string->token-stream}

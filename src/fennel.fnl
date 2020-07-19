@@ -52,11 +52,11 @@
             :sym utils.sym
             :varg utils.varg
             :path utils.path
+            :stringStream utils.stringStream
+            :string-stream utils.stringStream
 
             :parser parser.parser
-            :granulate parser.grandulate
-            :string-stream parser.string-stream
-            :stringStream parser.string-stream ; backwards-compatibility alias
+            :granulate parser.granulate
 
             :compile compiler.compile
             :compile-string compiler.compile-string

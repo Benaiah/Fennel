@@ -1,13 +1,17 @@
 (require-macros "src.fennel.enum")
+(local {: map-stream} (require "src.fennel.utils"))
 (local {: token-types
         : byte-stream->token-stream
         : string->token-stream} (require "src.fennel.tokenizer"))
+(local friend (require :fennel.friend))
 (local {: create-stack} (require "src.fennel.stack"))
 
 (global _ENV _ENV)
 (global _G _G)
 (global setfenv setfenv)
 (global loadstring loadstring)
+
+(local unpack (or _G.unpack table.unpack))
 
 (fn load-code [code environment filename]
   (var environment environment)
@@ -41,38 +45,41 @@
       (and first (not second)) first
       (concat-strings-with-spaces (.. first " " second ) ...)))
 
+;; a better way of expressing mutual recursion would clean this up
+;; quite a bit
 (local form->string
-  (do
-    (var form->string nil)
-    (fn complex-form->string [form opener closer]
-      (.. opener
-          (or (concat-strings-with-spaces
-               (map-values form->string (unpack form))) "")
-          closer))
-    (set form->string
-         (fn form->string [form]
-           (match form.type
-             form-types.symbol (. form 1)
-             form-types.number (tostring (. form 1))
+       (do
+         (var form->string nil)
+         (fn complex-form->string [form opener closer]
+           (.. opener
+               (or (concat-strings-with-spaces
+                    (map-values form->string (unpack form))) "")
+               closer))
+         (set form->string
+              (fn form->string [form]
+                (match form.type
+                  form-types.symbol (. form 1)
+                  form-types.number (tostring (. form 1))
 
-             form-types.string
-             (.. "\"" (escape-string-for-output (. form 1)) "\"")
+                  form-types.string
+                  (.. "\"" (escape-string-for-output (. form 1)) "\"")
 
-             form-types.list (complex-form->string form "(" ")")
-             form-types.table (complex-form->string form "{" "}")
-             form-types.sequence
-             (complex-form->string form "[" "]"))))
-    form->string))
+                  form-types.list (complex-form->string form "(" ")")
+                  form-types.table (complex-form->string form "{" "}")
+                  form-types.sequence
+                  (complex-form->string form "[" "]"))))
+         form->string))
 
 (local form-methods
-  {:push (fn [form child-form]
-           (set form.length (+ form.length 1))
-           (tset form form.length child-form)
-           child-form)})
+       {:push (fn [form child-form]
+                (set form.length (+ form.length 1))
+                (tset form form.length child-form)
+                child-form)})
 
 (local FORM-MT {:__index form-methods
                 :__tostring form->string
-                :__fennelview form->string})
+                ;; :__fennelview form->string
+                })
 
 (fn create-form [form-type ...]
   (let [form [...]]
@@ -87,7 +94,8 @@
 (fn string-form-from-keyword-string-bytes [colon ...]
   (create-form form-types.string (string.char ...)))
 (fn number-form-from-bytes [...]
-  (create-form form-types.number (tonumber (string.gsub (string.char ...) "_" ""))))
+  (let [substituted (string.gsub (string.char ...) "_" "")]
+    (create-form form-types.number (tonumber substituted))))
 (fn symbol-form [str] (create-form form-types.symbol str))
 (fn symbol-form-from-bytes [...] (symbol-form (string.char ...)))
 (fn sequence-form [...] (create-form form-types.sequence ...))
@@ -119,19 +127,18 @@
                           form-types.table "}")
         closer (string.char (unpack bytes))]
     (when (not= expected-closer closer)
-        (error (.. "unexpected closing delimiter " closer
-                   ", expected " expected-closer)))
+      (error (.. "unexpected closing delimiter " closer
+                 ", expected " expected-closer)))
     form))
 
 (local parser-states (enum expecting-form
                            expecting-whitespace
                            expecting-prefixed-form))
 
-(fn map-stream [f stream] (fn [...] (f (stream ...))))
 (local box-tokens
-  (partial map-stream
-           (fn [token-type first ...]
-             (values token-type (when first [first ...])))))
+       (partial map-stream
+                (fn [token-type first ...]
+                  (values token-type (when first [first ...])))))
 
 (fn token-stream->form-stream [token-stream]
   (let [boxed-token-stream (box-tokens token-stream)
@@ -160,11 +167,11 @@
                   pushed-form))))
       (let [(token-type bytes) (boxed-token-stream)]
         (when (and needs-whitespace
-                 (not= token-type tts.whitespace)
-                 (not= token-type tts.comment)
-                 (not= token-type tts.closer))
-            (error (.. "expected whitespace, got "
-                       (. token-types token-type))))
+                   (not= token-type tts.whitespace)
+                   (not= token-type tts.comment)
+                   (not= token-type tts.closer))
+          (error (.. "expected whitespace, got "
+                     (when token-type (. token-types token-type)))))
         (match token-type
           tts.symbol
           (dispatch (symbol-form-from-bytes (unpack bytes)))

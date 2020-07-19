@@ -1,3 +1,5 @@
+(local unpack (or _G.unpack table.unpack))
+
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
   pairs is already stable, but on 5.3 every run gives different ordering."
@@ -246,8 +248,38 @@ has options calls down into compile."
     ;; iteration.
     (fn [...] (split-values-alternating-recursively [] [] 1 ...))))
 
+(fn split-alternating [tab]
+  ;; technically, this will break if the table is big enough
+  (split-values-alternating (unpack tab)))
+
+(fn string->byte-stream [str]
+  (var index 1)
+  #(let [r (str:byte index)]
+     (set index (+ index 1))
+     r))
+
+(fn map-stream [f stream] (fn [...] (f (stream ...))))
+
+(fn chunk-stream->byte-stream [chunk-stream]
+  (var chunk "")
+  (var index 1)
+  (var done false)
+  (fn [...]
+    (if done nil
+        (<= index (length chunk))
+        (let [byte (chunk:byte index)]
+          (set index (+ index 1))
+          byte)
+
+        (do (set chunk (chunk-stream ...))
+            (if (or (not chunk) (= chunk ""))
+                (set done true)
+
+                (do (set index 2)
+                    (chunk:byte 1)))))))
+
 {;; general table functions
- : allpairs : stablepairs : copy : kvmap : map : walk-tree : split-values-alternating
+ : allpairs : stablepairs : copy : kvmap : map : walk-tree
 
  ;; AST functions
  : list : sequence : sym : varg : deref : expr : is-quoted
@@ -257,4 +289,9 @@ has options calls down into compile."
  : is-valid-lua-identifier : lua-keywords
  : propagate-options : root : debug-on
  :path (table.concat (doto ["./?.fnl" "./?/init.fnl"]
-                       (table.insert (getenv "FENNEL_PATH"))) ";")}
+                       (table.insert (getenv "FENNEL_PATH"))) ";")
+ : split-values-alternating : split-alternating
+ : string->byte-stream :stringStream string->byte-stream
+ : chunk-stream->byte-stream :granulate chunk-stream->byte-stream
+ : map-stream
+}
