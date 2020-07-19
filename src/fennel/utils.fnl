@@ -226,8 +226,28 @@ has options calls down into compile."
       #(set (root.chunk root.scope root.options root.reset)
             (values chunk scope options reset)))))
 
+(local split-values-alternating
+  (do
+    ;; We use a do block to keep split-values-alternating-recursively
+    ;; from being visible outside of split-values-alternating.
+    (fn split-values-alternating-recursively [odds evens i odd even ...]
+      (tset odds i odd)
+      (tset evens i even)
+      (if (> (select :# ...) 0)
+          ;; If there are arguments left, recurse.
+          (split-values-alternating-recursively odds evens (+ i 1) ...)
+
+          ;; If there are no arguments left, return the two tables of
+          ;; odd and even arguments.
+          (values odds evens)))
+
+    ;; This function allows us to set default arguments for
+    ;; split-values-alternating-recursively to use for the first
+    ;; iteration.
+    (fn [...] (split-values-alternating-recursively [] [] 1 ...))))
+
 {;; general table functions
- : allpairs : stablepairs : copy : kvmap : map : walk-tree
+ : allpairs : stablepairs : copy : kvmap : map : walk-tree : split-values-alternating
 
  ;; AST functions
  : list : sequence : sym : varg : deref : expr : is-quoted
