@@ -1,5 +1,5 @@
 (require-macros "src.fennel.enum")
-(local {: string->byte-stream} (require "src.fennel.utils"))
+(local {: map-values : string->byte-stream} (require "src.fennel.utils"))
 (local {: create-cursor} (require "src.fennel.cursor"))
 (local {: create-reader : compose-tagged-readers} (require "src.fennel.readers"))
 
@@ -297,6 +297,7 @@
 (fn take-token [cursor]
   (when (cursor.peek)
     (let [n (fennel-tagged-reader.readn cursor.peek)]
+      (print "N" n)
       (if (> n 0) (fennel-tagged-reader.read-bytes-tagged cursor)
           (let [(b1 b2 b3) (cursor.peek 3)]
             (error (.. "unrecognized byte sequence [" b1 " " b2 " " b3 "] "
@@ -304,7 +305,12 @@
 
 (fn byte-stream->token-stream [bytes-stream]
   (let [cursor (create-cursor bytes-stream)]
-    #(take-token cursor)))
+    #(let [vals [(take-token cursor)]]
+       (print "TOKEN"
+              ((require :fennelview)
+               [(. token-types (. vals 1))
+                (table.concat [(map-values string.char (select 2 (unpack vals)))])]))
+       (when (. vals 1) (unpack vals)))))
 
 (fn string->token-stream [str]
   (-> str string->byte-stream byte-stream->token-stream))

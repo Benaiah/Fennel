@@ -95,21 +95,21 @@
 (set utils.fennel-module mod)
 
 ;; Load the built-in macros from macros.fnl.
-(let [builtin-macros (eval-compiler
-                       (with-open [f (assert (io.open "src/fennel/macros.fnl"))]
-                         (.. "[===[" (f:read "*all") "]===]")))
-      module-name "fennel.macros"
-      _ (tset package.preload module-name #mod)
-      env (specials.make-compiler-env nil compiler.scopes.compiler {})
-      built-ins (eval builtin-macros {:env env
-                                      :scope compiler.scopes.compiler
-                                      :allowedGlobals false
-                                      :useMetadata true
-                                      :filename "src/fennel/macros.fnl"
-                                      :moduleName module-name})]
-  (each [k v (pairs built-ins)]
-    (tset compiler.scopes.global.macros k v))
-  (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)
-  (tset package.preload module-name nil))
+;; (let [builtin-macros (eval-compiler
+;;                        (with-open [f (assert (io.open "src/fennel/macros.fnl"))]
+;;                          (.. "[===[" (f:read "*all") "]===]")))
+;;       module-name "fennel.macros"
+;;       _ (tset package.preload module-name #mod)
+;;       env (specials.makeCompilerEnv nil compiler.scopes.compiler {})
+;;       built-ins (eval builtin-macros {:env env
+;;                                       :scope compiler.scopes.compiler
+;;                                       :allowedGlobals false
+;;                                       :useMetadata true
+;;                                       :filename "src/fennel/macros.fnl"
+;;                                       :moduleName module-name})]
+;;   (each [k v (pairs built-ins)]
+;;     (tset compiler.scopes.global.macros k v))
+;;   (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)
+;;   (tset package.preload module-name nil))
 
 mod

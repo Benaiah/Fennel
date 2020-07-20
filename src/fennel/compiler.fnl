@@ -421,6 +421,7 @@ from an expression, we can create 1 or 2 locals to store intermediate results
 rather than turn the expression into a closure that is called immediately,
 which we have to do if we don't know."
   (let [opts (or opts [])
+        _ (print "AST" ast)
         ;; expand any top-level macros before parsing and emitting Lua
         ast (macroexpand* ast scope)]
     (var exprs [])
@@ -690,6 +691,8 @@ which we have to do if we don't know."
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
     (each [ok val (parser.parser strm opts.filename opts)]
+      (print "OKVAL" ok val ((require :fennelview) val {:metamethod? false}))
+      (print :sym? (utils.isSym val) :list? (utils.isList val) :sequence? (utils.isSequence val) :table? (utils.isTable val) :varg? (utils.isVarg val))
       (tset vals (+ (# vals) 1) val))
     (for [i 1 (# vals) 1]
       (let [exprs (compile1 (. vals i) scope chunk
@@ -704,6 +707,7 @@ which we have to do if we don't know."
   (compile-stream (parser.string-stream str) (or opts {})))
 
 (fn compile [ast opts]
+  (print "COMPILE" ast)
   (let [opts (utils.copy opts)
         old-globals allowed-globals
         chunk []

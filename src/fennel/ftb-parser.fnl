@@ -1,5 +1,7 @@
 (require-macros "src.fennel.enum")
-(local {: map-stream} (require "src.fennel.utils"))
+(local {: list : sequence : sym : varg : deref : expr
+        : isExpr : isList : isMultiSym : isSequence : isSym : isTable : isVarg
+        : map-stream : map-values} (require "src.fennel.utils"))
 (local {: token-types
         : byte-stream->token-stream
         : string->token-stream} (require "src.fennel.tokenizer"))
@@ -34,12 +36,6 @@
 (fn escape-string-for-output [str]
   (str:gsub "[\1-\31]" #(.. "\\" ($:byte))))
 
-(fn first-values [first] first)
-(fn rest-values [first ...] ...)
-(fn map-values [fun item ...]
-  (when (not= item nil)
-    (values (fun item) (map-values fun ...))))
-
 (fn concat-strings-with-spaces [first second ...]
   (if (and (not first) (not second)) (values)
       (and first (not second)) first
@@ -71,15 +67,32 @@
          form->string))
 
 (local form-methods
-       {:push (fn [form child-form]
-                (set form.length (+ form.length 1))
-                (tset form form.length child-form)
-                child-form)})
+  {:push (fn [form child-form]
+           (set form.length (+ form.length 1))
+           (tset form form.length child-form)
+           child-form)})
 
 (local FORM-MT {:__index form-methods
                 :__tostring form->string
-                ;; :__fennelview form->string
-                })
+                :__fennelview form->string})
+
+;; (local form-index-fn
+;;        (fn [form key]
+;;          (match key
+;;            :push (fn [form child-form]
+;;                    (let [newlen (+ (or (rawget form :length) 0) 1)]
+;;                      (when (> newlen 1)
+;;                        (set form.length (+ form.length 1)))
+;;                      (tset form form.length child-form))
+;;                    child-form)
+;;            :length #form.length
+;;            _ (rawget form key))))
+
+;; (local FORM-MT {:__index form-index-fn
+;;                 ;; :__len
+;;                 :__tostring form->string
+;;                 ;; :__fennelview form->string
+;;                 })
 
 (fn create-form [form-type ...]
   (let [form [...]]
@@ -138,7 +151,7 @@
 (local box-tokens
        (partial map-stream
                 (fn [token-type first ...]
-                  (values token-type (when first [first ...])))))
+                  (when first (values token-type (when first [first ...]))))))
 
 (fn token-stream->form-stream [token-stream]
   (let [boxed-token-stream (box-tokens token-stream)
@@ -155,6 +168,7 @@
       (var should-return nil)
       (var return-value nil)
       (fn dispatch [form]
+        (print "dispatching" form)
         (if (= stack.length 0)
             (do (set should-return true)
                 (set return-value form))
@@ -171,7 +185,7 @@
                    (not= token-type tts.comment)
                    (not= token-type tts.closer))
           (error (.. "expected whitespace, got "
-                     (when token-type (. token-types token-type)))))
+                     (or (and token-type (. token-types token-type)) ""))))
         (match token-type
           tts.symbol
           (dispatch (symbol-form-from-bytes (unpack bytes)))
@@ -194,7 +208,7 @@
                                    (not= token-type tts.whitespace)
                                    (not= token-type tts.comment)))
         (if should-return return-value (take-form))))
-    take-form))
+    #(do (print "taking form") (take-form))))
 
 (fn byte-stream->form-stream [byte-stream]
   (-> byte-stream
@@ -206,4 +220,4 @@
       string->token-stream
       token-stream->form-stream))
 
-{: byte-stream->form-stream : string->form-stream}
+{: byte-stream->form-stream : string->form-stream : form-types}

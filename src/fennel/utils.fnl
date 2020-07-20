@@ -1,4 +1,4 @@
-(local unpack (or _G.unpack table.unpack))
+.local unpack (or _G.unpack table.unpack))
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
@@ -228,6 +228,12 @@ has options calls down into compile."
       #(set (root.chunk root.scope root.options root.reset)
             (values chunk scope options reset)))))
 
+(fn first-values [first] first)
+(fn rest-values [first ...] ...)
+(fn map-values [fun item ...]
+  (when (not= item nil)
+    (values (fun item) (map-values fun ...))))
+
 (local split-values-alternating
   (do
     ;; We use a do block to keep split-values-alternating-recursively
@@ -278,19 +284,21 @@ has options calls down into compile."
                 (do (set index 2)
                     (chunk:byte 1)))))))
 
+
 {;; general table functions
- : allpairs : stablepairs : copy : kvmap : map : walk-tree
+ : allpairs : stablepairs : copy : kvmap : map : walk-tree : split-alternating
 
  ;; AST functions
  : list : sequence : sym : varg : deref : expr : is-quoted
  : is-expr : is-list : is-multi-sym : is-sequence : is-sym : is-table : is-varg
+
+ : first-values : rest-values : map-values : split-values-alternating
 
  ;; other
  : is-valid-lua-identifier : lua-keywords
  : propagate-options : root : debug-on
  :path (table.concat (doto ["./?.fnl" "./?/init.fnl"]
                        (table.insert (getenv "FENNEL_PATH"))) ";")
- : split-values-alternating : split-alternating
  : string->byte-stream :stringStream string->byte-stream
  : chunk-stream->byte-stream :granulate chunk-stream->byte-stream
  : map-stream

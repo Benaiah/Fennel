@@ -905,7 +905,7 @@ Consider using import-macros instead as it is more flexible.")
     (when utils.root.options.requireAsInclude
       (set subscope.specials.require compiler.require-include))
     ;; parse Fennel src into table of exprs to know which expr is the tail
-    (each [_ val (parser.parser (parser.string-stream src) path)]
+    (each [_ val (parser.parser (utils.string-stream src) path)]
       (table.insert forms val))
     ;; Compile the forms into sub-chunk; compiler.compile1 is necessary
     ;; for all nested includes to be emitted in the same root chunk
@@ -1002,6 +1002,7 @@ Lua output. The module must be a string literal and resolvable at compile time."
  "Evaluate the body at compile-time. Use the macro system instead if possible.")
 
 {:doc doc*
+
  : current-global-names
  : load-code
  : macro-loaded
@@ -1009,4 +1010,3 @@ Lua output. The module must be a string literal and resolvable at compile time."
  : search-module
  : make-searcher
  : wrap-env}
-

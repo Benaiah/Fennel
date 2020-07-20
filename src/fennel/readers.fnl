@@ -12,7 +12,7 @@
         readn-tagged-inner
         (fn readn-tagged-inner [peek i]
           (let [tag (. tags i) reader (. readers i)]
-            (if (= reader nil) (values nil 0)
+            (if (= reader nil) nil
                 (let [n (reader.readn peek)]
                   (if (> n 0) (values tag n)
                       (readn-tagged-inner peek (+ i 1)))))))
