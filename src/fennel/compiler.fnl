@@ -837,7 +837,7 @@ compiler by default; these can be re-enabled with export FENNEL_DEBUG=trace."
       (= (type form) "table") ; table
       (let [mapped (utils.kvmap form (entry-transform q q))
             source (getmetatable form)
-            filename (if source.filename (: "%q" :format source.filename) :nil)]
+            filename (if (and source source.filename) (: "%q" :format source.filename) :nil)]
         (: "setmetatable({%s}, {filename=%s, line=%s})"
            :format (mixed-concat mapped ", ") filename
            (if source source.line :nil)))

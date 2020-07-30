@@ -1,4 +1,4 @@
-.local unpack (or _G.unpack table.unpack))
+(local unpack (or _G.unpack table.unpack))
 
 (fn stablepairs [t]
   "Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
