@@ -7,19 +7,27 @@
         : form-types} (require :fennel.ftb-parser))
 (local unpack (or _G.unpack table.unpack))
 
-(fn form->dynamic-ast [form]
-  (print "form->dynast" form)
+(fn table-with-metatable [MT ...]
+  (let [t [...]]
+    (setmetatable t MT)
+    t))
+
+(fn form->dynamic-ast [form filename]
+  ;; (print "form->dynast" (fennelview form {:metamethod? false}))
   (when form
-    (print "FORM TYPE" (. form-types form.type))
+    ;; (print "FORM TYPE" (. form-types form.type))
+    ;; (print "FORM POSITION" (. form-types form.position))
     (match form.type
       form-types.symbol (if (= (. form 1) "...") (varg)
-                            (sym (. form 1)))
+                            (sym (. form 1) {:bytestart form.position
+                                             :byteend (+ form.position form.length)
+                                             : filename}))
       form-types.number (. form 1)
       form-types.string (. form 1)
       form-types.table [(map-values form->dynamic-ast (unpack form))]
       form-types.list (list (map-values form->dynamic-ast (unpack form)))
-      form-types.sequence (sequence (map-values form->dynamic-ast (unpack form)))
-      )))
+      form-types.sequence (sequence (map-values form->dynamic-ast (unpack form))))
+    ))
 
 (fn parser [getbyte filename options]
   "Parse one value given a function that returns sequential bytes.
@@ -30,7 +38,8 @@ stream is finished."
        byte-stream->form-stream
        (map-stream
         #(when $1
-           (let [dyn-ast (form->dynamic-ast $1)]
+           ;; (print "FORM" $1)
+           (let [dyn-ast (form->dynamic-ast $1 filename)]
              (values true dyn-ast))))))
 
 {: parser : granulate}

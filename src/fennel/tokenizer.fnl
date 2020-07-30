@@ -297,20 +297,26 @@
 (fn take-token [cursor]
   (when (cursor.peek)
     (let [n (fennel-tagged-reader.readn cursor.peek)]
-      (print "N" n)
       (if (> n 0) (fennel-tagged-reader.read-bytes-tagged cursor)
           (let [(b1 b2 b3) (cursor.peek 3)]
             (error (.. "unrecognized byte sequence [" b1 " " b2 " " b3 "] "
                        "\"" (string.char b1 b2 b3) "\"")))))))
 
 (fn byte-stream->token-stream [bytes-stream]
+  (var byte-index 1)
   (let [cursor (create-cursor bytes-stream)]
-    #(let [vals [(take-token cursor)]]
-       (print "TOKEN"
-              ((require :fennelview)
-               [(. token-types (. vals 1))
-                (table.concat [(map-values string.char (select 2 (unpack vals)))])]))
-       (when (. vals 1) (unpack vals)))))
+    #(let [vals [(take-token cursor)]
+           typ (. vals 1)
+           len (- (length vals) 1)
+           position byte-index]
+       (set byte-index (+ byte-index len))
+       ;; (print "POSITION" position "NEXT" byte-index)
+       ;; (print "TOKEN"
+       ;;        ((require :fennelview)
+       ;;         [(. token-types (. vals 1))
+       ;;          position
+       ;;          (table.concat [(map-values string.char (select 2 (unpack vals)))])]))
+       (when (. vals 1) (values typ position (select 2 (unpack vals)))))))
 
 (fn string->token-stream [str]
   (-> str string->byte-stream byte-stream->token-stream))

@@ -53,17 +53,18 @@
                closer))
          (set form->string
               (fn form->string [form]
-                (match form.type
-                  form-types.symbol (. form 1)
-                  form-types.number (tostring (. form 1))
+                (or (match form.type
+                      form-types.symbol (. form 1)
+                      form-types.number (tostring (. form 1))
 
-                  form-types.string
-                  (.. "\"" (escape-string-for-output (. form 1)) "\"")
+                      form-types.string
+                      (.. "\"" (escape-string-for-output (. form 1)) "\"")
 
-                  form-types.list (complex-form->string form "(" ")")
-                  form-types.table (complex-form->string form "{" "}")
-                  form-types.sequence
-                  (complex-form->string form "[" "]"))))
+                      form-types.list (complex-form->string form "(" ")")
+                      form-types.table (complex-form->string form "{" "}")
+                      form-types.sequence
+                      (complex-form->string form "[" "]"))
+                    "<unprintable-form>")))
          form->string))
 
 (local form-methods
@@ -94,40 +95,41 @@
 ;;                 ;; :__fennelview form->string
 ;;                 })
 
-(fn create-form [form-type ...]
+(fn create-form [form-type position ...]
   (let [form [...]]
     (tset form :type form-type)
     (tset form :length (select :# ...))
+    (tset form :position position)
     (setmetatable form FORM-MT)
     form))
 
-(fn string-form [str]
-  (create-form form-types.string (canonicalize str)))
-(fn string-form-from-bytes [...] (string-form (string.char ...)))
-(fn string-form-from-keyword-string-bytes [colon ...]
-  (create-form form-types.string (string.char ...)))
-(fn number-form-from-bytes [...]
+(fn string-form [position str]
+  (create-form form-types.string position (canonicalize str)))
+(fn string-form-from-bytes [position ...] (string-form position (string.char ...)))
+(fn string-form-from-keyword-string-bytes [position colon ...]
+  (create-form form-types.string position (string.char ...)))
+(fn number-form-from-bytes [position ...]
   (let [substituted (string.gsub (string.char ...) "_" "")]
-    (create-form form-types.number (tonumber substituted))))
-(fn symbol-form [str] (create-form form-types.symbol str))
-(fn symbol-form-from-bytes [...] (symbol-form (string.char ...)))
-(fn sequence-form [...] (create-form form-types.sequence ...))
-(fn table-form [...] (create-form form-types.table ...))
-(fn list-form [...] (create-form form-types.list ...))
+    (create-form form-types.number position (tonumber substituted))))
+(fn symbol-form [position str] (create-form form-types.symbol position str))
+(fn symbol-form-from-bytes [position ...] (symbol-form position (string.char ...)))
+(fn sequence-form [position ...] (create-form form-types.sequence position ...))
+(fn table-form [position ...] (create-form form-types.table position ...))
+(fn list-form [position ...] (create-form form-types.list position ...))
 
-(fn open-form-with-stack [stack bytes]
+(fn open-form-with-stack [stack position bytes]
   (stack:push
    (match bytes
-     [40] (list-form)
-     [91] (sequence-form)
-     [123] (table-form))))
+     [40] (list-form position)
+     [91] (sequence-form position)
+     [123] (table-form position))))
 
-(fn open-prefix-form-with-stack [stack bytes]
+(fn open-prefix-form-with-stack [stack position bytes]
   (stack:push
    (match bytes
-     [35] (list-form (symbol-form :hashfn))
-     [44] (list-form (symbol-form :unquote))
-     [96] (list-form (symbol-form :quote)))))
+     [35] (list-form position (symbol-form position :hashfn))
+     [44] (list-form position (symbol-form position :unquote))
+     [96] (list-form position (symbol-form position :quote)))))
 
 (fn close-form-with-stack [stack bytes]
   (when (= stack.length 0)
@@ -150,8 +152,8 @@
 
 (local box-tokens
        (partial map-stream
-                (fn [token-type first ...]
-                  (when first (values token-type (when first [first ...]))))))
+                (fn [token-type position first ...]
+                  (when first (values token-type position (when first [first ...]))))))
 
 (fn token-stream->form-stream [token-stream]
   (let [boxed-token-stream (box-tokens token-stream)
@@ -168,7 +170,7 @@
       (var should-return nil)
       (var return-value nil)
       (fn dispatch [form]
-        (print "dispatching" form)
+        ;; (print "dispatching" form)
         (if (= stack.length 0)
             (do (set should-return true)
                 (set return-value form))
@@ -179,7 +181,7 @@
                       (let [further-form (stack:pop)]
                         (dispatch further-form)))
                   pushed-form))))
-      (let [(token-type bytes) (boxed-token-stream)]
+      (let [(token-type position bytes) (boxed-token-stream)]
         (when (and needs-whitespace
                    (not= token-type tts.whitespace)
                    (not= token-type tts.comment)
@@ -188,27 +190,29 @@
                      (or (and token-type (. token-types token-type)) ""))))
         (match token-type
           tts.symbol
-          (dispatch (symbol-form-from-bytes (unpack bytes)))
+          (dispatch (symbol-form-from-bytes position (unpack bytes)))
           tts.string
-          (dispatch (string-form-from-bytes (unpack bytes)))
+          (dispatch (string-form-from-bytes position (unpack bytes)))
           tts.keyword-string
-          (dispatch (string-form-from-keyword-string-bytes
+          (dispatch (string-form-from-keyword-string-bytes position
                      (unpack bytes)))
           tts.number
-          (dispatch (number-form-from-bytes (unpack bytes)))
+          (dispatch (number-form-from-bytes position (unpack bytes)))
           tts.whitespace nil
           tts.comment nil
-          tts.opener (open-form bytes)
+          tts.opener (open-form position bytes)
           tts.prefix (do (tset prefixes-at (+ stack.length 1) true)
-                         (open-prefix-form bytes))
+                         (open-prefix-form position bytes))
           tts.closer (let [form (close-form bytes)] (dispatch form))
           nil (do (set should-return true) (set return-value nil)))
         (set needs-whitespace (and (not= token-type tts.opener)
                                    (not= token-type tts.prefix)
                                    (not= token-type tts.whitespace)
                                    (not= token-type tts.comment)))
-        (if should-return return-value (take-form))))
-    #(do (print "taking form") (take-form))))
+        (if should-return
+            return-value
+            (take-form))))
+    #(take-form)))
 
 (fn byte-stream->form-stream [byte-stream]
   (-> byte-stream
