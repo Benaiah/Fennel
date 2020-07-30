@@ -258,6 +258,14 @@ has options calls down into compile."
   ;; technically, this will break if the table is big enough
   (split-values-alternating (unpack tab)))
 
+(fn alternating->kv-1 [t k v ...]
+  (if (not= k nil) (do (tset t k v)
+                       (alternating->kv-1 t ...))
+      t))
+
+(fn alternating->kv [...]
+  (alternating->kv-1 {} ...))
+
 (fn string->byte-stream [str]
   (var index 1)
   #(let [r (str:byte index)]
@@ -287,6 +295,7 @@ has options calls down into compile."
 
 {;; general table functions
  : allpairs : stablepairs : copy : kvmap : map : walk-tree : split-alternating
+ : alternating->kv
 
  ;; AST functions
  : list : sequence : sym : varg : deref : expr : is-quoted

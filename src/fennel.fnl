@@ -107,6 +107,7 @@
                                       :useMetadata true
                                       :filename "src/fennel/macros.fnl"
                                       :moduleName module-name})]
+  (print ((require :fennelview) built-ins))
   (each [k v (pairs built-ins)]
     (tset compiler.scopes.global.macros k v))
   (set compiler.scopes.global.macros.λ compiler.scopes.global.macros.lambda)
