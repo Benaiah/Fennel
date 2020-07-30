@@ -21,7 +21,11 @@
                                              : filename}))
       form-types.number (. form 1)
       form-types.string (. form 1)
-      form-types.table [(map-values form->dynamic-ast (unpack form))]
+      form-types.table (table-with-metatable
+                        {:bytestart form.position
+                         :byteend (+ form.position form.length)
+                         : filename}
+                        (map-values form->dynamic-ast (unpack form)))
       form-types.list (list (map-values form->dynamic-ast (unpack form)))
       form-types.sequence (sequence (map-values form->dynamic-ast (unpack form))))
     ))
