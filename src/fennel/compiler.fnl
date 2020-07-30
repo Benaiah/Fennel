@@ -421,7 +421,6 @@ from an expression, we can create 1 or 2 locals to store intermediate results
 rather than turn the expression into a closure that is called immediately,
 which we have to do if we don't know."
   (let [opts (or opts [])
-        ;; _ (print "AST" ast)
         ;; expand any top-level macros before parsing and emitting Lua
         ast (macroexpand* ast scope)]
     (var exprs [])
