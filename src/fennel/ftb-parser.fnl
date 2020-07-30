@@ -31,7 +31,7 @@
     (load-fn)))
 
 ;; a "form" has the following shape:
-;; [form-type ... values]
+;; [form-type position ... values]
 (local form-types (enum symbol string number sequence table list))
 (fn escape-string-for-output [str]
   (str:gsub "[\1-\31]" #(.. "\\" ($:byte))))
@@ -76,24 +76,6 @@
 (local FORM-MT {:__index form-methods
                 :__tostring form->string
                 :__fennelview form->string})
-
-;; (local form-index-fn
-;;        (fn [form key]
-;;          (match key
-;;            :push (fn [form child-form]
-;;                    (let [newlen (+ (or (rawget form :length) 0) 1)]
-;;                      (when (> newlen 1)
-;;                        (set form.length (+ form.length 1)))
-;;                      (tset form form.length child-form))
-;;                    child-form)
-;;            :length #form.length
-;;            _ (rawget form key))))
-
-;; (local FORM-MT {:__index form-index-fn
-;;                 ;; :__len
-;;                 :__tostring form->string
-;;                 ;; :__fennelview form->string
-;;                 })
 
 (fn create-form [form-type position ...]
   (let [form [...]]
@@ -170,7 +152,6 @@
       (var should-return nil)
       (var return-value nil)
       (fn dispatch [form]
-        ;; (print "dispatching" form)
         (if (= stack.length 0)
             (do (set should-return true)
                 (set return-value form))

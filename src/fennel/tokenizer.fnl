@@ -310,12 +310,6 @@
            len (- (length vals) 1)
            position byte-index]
        (set byte-index (+ byte-index len))
-       ;; (print "POSITION" position "NEXT" byte-index)
-       ;; (print "TOKEN"
-       ;;        ((require :fennelview)
-       ;;         [(. token-types (. vals 1))
-       ;;          position
-       ;;          (table.concat [(map-values string.char (select 2 (unpack vals)))])]))
        (when (. vals 1) (values typ position (select 2 (unpack vals)))))))
 
 (fn string->token-stream [str]

@@ -13,10 +13,7 @@
     t))
 
 (fn form->dynamic-ast [form filename]
-  ;; (print "form->dynast" (fennelview form {:metamethod? false}))
   (when form
-    ;; (print "FORM TYPE" (. form-types form.type))
-    ;; (print "FORM POSITION" (. form-types form.position))
     (match form.type
       form-types.symbol (if (= (. form 1) "...") (varg)
                             (sym (. form 1) {:bytestart form.position
@@ -38,7 +35,6 @@ stream is finished."
        byte-stream->form-stream
        (map-stream
         #(when $1
-           ;; (print "FORM" $1)
            (let [dyn-ast (form->dynamic-ast $1 filename)]
              (values true dyn-ast))))))
 

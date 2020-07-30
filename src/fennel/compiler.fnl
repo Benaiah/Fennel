@@ -691,8 +691,6 @@ which we have to do if we don't know."
     (set (utils.root.chunk utils.root.scope utils.root.options)
          (values chunk scope opts))
     (each [ok val (parser.parser strm opts.filename opts)]
-      ;; (print "OKVAL" ok val ((require :fennelview) val {:metamethod? false}))
-      ;; (print :sym? (utils.is-sym val) :list? (utils.is-list val) :sequence? (utils.is-sequence val) :table? (utils.is-table val) :varg? (utils.is-varg val))
       (tset vals (+ (# vals) 1) val))
     (for [i 1 (# vals) 1]
       (let [exprs (compile1 (. vals i) scope chunk
@@ -707,7 +705,6 @@ which we have to do if we don't know."
   (compile-stream (utils.string->byte-stream str) (or opts {})))
 
 (fn compile [ast opts]
-  ;; (print "COMPILE" ast)
   (let [opts (utils.copy opts)
         old-globals allowed-globals
         chunk []
